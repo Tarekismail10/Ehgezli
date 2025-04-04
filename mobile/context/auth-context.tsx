@@ -41,7 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     try {
       const response = await loginUser(email, password);
-      setUser(response.user);
+      // The server uses session cookies instead of tokens
+      // So we just need to set the user data
+      setUser(response);
     } catch (err) {
       setError('Invalid email or password');
       throw err;

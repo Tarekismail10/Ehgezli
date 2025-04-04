@@ -71,17 +71,24 @@ export default function LoginScreen() {
 
   const handleSubmit = async () => {
     try {
+      console.log('Login form submitted with:', { email, password, isLogin });
+      
       if (isLogin) {
+        console.log('Attempting to login...');
         await login(email, password);
+        console.log('Login successful');
       } else {
         if (!firstName || !lastName) {
           Alert.alert('Error', 'Please fill in all required fields');
           return;
         }
+        console.log('Attempting to register...');
         await register({ firstName, lastName, email, password });
+        console.log('Registration successful');
       }
-    } catch (err) {
-      console.error('Authentication error:', err);
+    } catch (error) {
+      console.error('Authentication error:', error);
+      // Error is already handled in the auth context
     }
   };
 

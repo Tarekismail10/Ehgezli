@@ -2,8 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { RestaurantCard } from './RestaurantCard';
-import { RestaurantWithAvailability, BranchWithAvailability } from '../shared/types';
-import { getRestaurants, getSavedRestaurants } from '../shared/api/client';
+import { getRestaurants, getSavedRestaurants, Restaurant, Branch } from '../shared/api/client';
 
 interface RestaurantListProps {
   searchQuery?: string;
@@ -29,7 +28,7 @@ export function RestaurantList({
   console.log('[RestaurantList] rendering', { showSavedOnly });
   
   // Query for all restaurants with availability
-  const { data: restaurants, isLoading } = useQuery<RestaurantWithAvailability[]>({
+  const { data: apiRestaurants, isLoading } = useQuery<Restaurant[]>({
     queryKey: ['restaurants', searchQuery, cityFilter, cuisineFilter, priceFilter, date, time, partySize, showSavedOnly],
     queryFn: async () => {
       console.log('[RestaurantList] Fetching with search query:', searchQuery);
@@ -59,9 +58,38 @@ export function RestaurantList({
     staleTime: 0, // Ensure data is always considered stale and will refetch
     refetchOnWindowFocus: false, // Prevent refetching when window regains focus
   });
+
+  // Transform API restaurants to the expected format
+  const restaurants = React.useMemo(() => {
+    console.log('[RestaurantList] API response:', apiRestaurants);
+    if (!apiRestaurants) {
+      console.log('[RestaurantList] API response is undefined or null');
+      return [];
+    }
+    
+    if (!Array.isArray(apiRestaurants)) {
+      console.log('[RestaurantList] API response is not an array:', typeof apiRestaurants);
+      return [];
+    }
+    
+    return apiRestaurants.map(restaurant => {
+      // Add profile property if it doesn't exist
+      const restaurantWithProfile = {
+        ...restaurant,
+        profile: {
+          cuisine: restaurant.cuisine,
+          about: restaurant.description,
+          priceRange: restaurant.priceRange,
+          logo: restaurant.imageUrl,
+        },
+      };
+      
+      return restaurantWithProfile;
+    });
+  }, [apiRestaurants]);
   
   // Query for saved restaurants - always fetch this for marking saved status
-  const { data: savedRestaurants, isLoading: isSavedLoading } = useQuery<RestaurantWithAvailability[]>({
+  const { data: savedRestaurants, isLoading: isSavedLoading } = useQuery<Restaurant[]>({
     queryKey: ['saved-restaurants'],
     queryFn: async () => {
       try {
@@ -98,15 +126,15 @@ export function RestaurantList({
   }
 
   // Create a flat list of all restaurant branches with their associated restaurant
-  const allBranches: { restaurant: RestaurantWithAvailability; branch: BranchWithAvailability; branchIndex: number }[] = [];
+  const allBranches: { restaurant: Restaurant; branch: Branch; branchIndex: number }[] = [];
   
   // Create a map of saved restaurant IDs and branch indexes for quick lookup
   const savedMap = new Map<string, boolean>();
   if (savedRestaurants && !showSavedOnly) {
     // Loop through each restaurant and its branches to find saved ones
-    savedRestaurants.forEach((restaurant) => {
+    savedRestaurants.forEach((restaurant: Restaurant) => {
       if (restaurant.branches) {
-        restaurant.branches.forEach((branch, branchIndex) => {
+        restaurant.branches.forEach((branch: Branch, branchIndex: number) => {
           // Check if this branch is marked as saved
           if ((branch as any).isSaved) {
             savedMap.set(`${restaurant.id}-${branchIndex}`, true);
@@ -117,41 +145,45 @@ export function RestaurantList({
   }
   
   // Flatten the restaurants into branches
-  restaurants.forEach(restaurant => {
-    if (!restaurant.branches) {
-      console.log(`[RestaurantList] Restaurant ${restaurant.id} has no branches`);
-      return;
-    }
-    
-    console.log(`[RestaurantList] Processing restaurant ${restaurant.id} with ${restaurant.branches.length} branches`);
-    
-    restaurant.branches.forEach((branch, branchIndex) => {
-      // Ensure branch has required properties
-      if (!branch) {
-        console.log(`[RestaurantList] Branch ${branchIndex} of restaurant ${restaurant.id} is undefined`);
+  if (restaurants && Array.isArray(restaurants)) {
+    restaurants.forEach((restaurant: Restaurant) => {
+      if (!restaurant || !restaurant.branches || !Array.isArray(restaurant.branches)) {
+        console.log(`[RestaurantList] Restaurant ${restaurant?.id || 'unknown'} has invalid or no branches`);
         return;
       }
       
-      // Ensure branch has slots array (even if empty)
-      if (!branch.slots) {
-        console.log(`[RestaurantList] Branch ${branchIndex} of restaurant ${restaurant.id} has no slots, initializing empty array`);
-        branch.slots = [];
-      }
+      console.log(`[RestaurantList] Processing restaurant ${restaurant.id} with ${restaurant.branches.length} branches`);
       
-      // If showSavedOnly is true, we already have only saved restaurants from the API
-      // Otherwise, check the savedMap
-      if (!showSavedOnly && savedMap.has(`${restaurant.id}-${branchIndex}`)) {
-        // Mark as saved for UI purposes
-        (branch as any).isSaved = true;
-      }
-      
-      allBranches.push({
-        restaurant,
-        branch,
-        branchIndex
+      restaurant.branches.forEach((branch: Branch, branchIndex: number) => {
+        // Ensure branch has required properties
+        if (!branch) {
+          console.log(`[RestaurantList] Branch ${branchIndex} of restaurant ${restaurant.id} is undefined`);
+          return;
+        }
+        
+        // Ensure branch has slots array (even if empty)
+        if (!branch.slots) {
+          console.log(`[RestaurantList] Branch ${branchIndex} of restaurant ${restaurant.id} has no slots, initializing empty array`);
+          branch.slots = [];
+        }
+        
+        // If showSavedOnly is true, we already have only saved restaurants from the API
+        // Otherwise, check the savedMap
+        if (!showSavedOnly && savedMap.has(`${restaurant.id}-${branchIndex}`)) {
+          // Mark as saved for UI purposes
+          (branch as any).isSaved = true;
+        }
+        
+        allBranches.push({
+          restaurant,
+          branch,
+          branchIndex
+        });
       });
     });
-  });
+  } else {
+    console.log('[RestaurantList] Restaurants data is not in expected format:', restaurants);
+  }
   
   console.log(`[RestaurantList] Total branches to display: ${allBranches.length}`);
   
@@ -161,7 +193,7 @@ export function RestaurantList({
       keyExtractor={(item) => `${item.restaurant.id}-${item.branchIndex}`}
       renderItem={({ item }) => (
         <RestaurantCard
-          restaurant={item.restaurant}
+          restaurant={item.restaurant as any}
           branchIndex={item.branchIndex}
           date={date.toISOString()}
           time={time}
