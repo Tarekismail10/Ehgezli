@@ -1,3 +1,15 @@
+/**
+ * client.ts - API Client
+ * 
+ * This file contains all the functions for communicating with the backend server.
+ * It handles:
+ * - Authentication (login, register, logout)
+ * - Fetching data (restaurants, bookings, etc.)
+ * - Sending data to the server (creating bookings, etc.)
+ * 
+ * The file uses axios, a popular HTTP client library, to make API requests.
+ */
+
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
@@ -42,16 +54,31 @@ export interface Booking {
   status: 'confirmed' | 'pending' | 'cancelled';
 }
 
-// Base API URL - replace with your actual API endpoint
-const API_BASE_URL = 'http://localhost:4000';
+// The base URL for all API requests
+// In development, this points to your local server
+// In production, this would point to your deployed backend
+export const API_BASE_URL = 'http://localhost:4000';
 
-// Create axios instance
+/**
+ * Create an axios instance with default configuration
+ * 
+ * - baseURL: All requests will be prefixed with this URL
+ * - withCredentials: Ensures cookies are sent with cross-origin requests
+ */
 const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // Add this line to include cookies in requests
+  withCredentials: true, // Include cookies in requests
 });
 
-// Auth functions
+// ===== AUTHENTICATION FUNCTIONS =====
+
+/**
+ * Log in a user with email and password
+ * 
+ * @param {string} email - User's email address
+ * @param {string} password - User's password
+ * @returns {Promise<any>} - Promise resolving to the user data
+ */
 export const loginUser = async (email: string, password: string) => {
   try {
     console.log(`[API] Attempting to login with email: ${email} to ${API_BASE_URL}/api/login`);
@@ -74,6 +101,12 @@ export const loginUser = async (email: string, password: string) => {
   }
 };
 
+/**
+ * Register a new user
+ * 
+ * @param {object} userData - User registration data
+ * @returns {Promise<any>} - Promise resolving to the new user data
+ */
 export const registerUser = async (userData: {
   firstName: string;
   lastName: string;
@@ -89,6 +122,11 @@ export const registerUser = async (userData: {
   }
 };
 
+/**
+ * Log out the current user
+ * 
+ * @returns {Promise<boolean>} - Promise resolving to true if logout was successful
+ */
 export const logoutUser = async () => {
   try {
     await api.post('/auth/logout');
@@ -99,6 +137,11 @@ export const logoutUser = async () => {
   }
 };
 
+/**
+ * Get the currently logged in user
+ * 
+ * @returns {Promise<User | null>} - Promise resolving to the user data or null if not logged in
+ */
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
     const response = await api.get('/auth/me');
@@ -109,7 +152,14 @@ export const getCurrentUser = async (): Promise<User | null> => {
   }
 };
 
-// Restaurant functions
+// ===== RESTAURANT FUNCTIONS =====
+
+/**
+ * Get a list of restaurants
+ * 
+ * @param {object} params - Optional query parameters for filtering restaurants
+ * @returns {Promise<Restaurant[]>} - Promise resolving to an array of restaurants
+ */
 export const getRestaurants = async (params?: Record<string, any>): Promise<Restaurant[]> => {
   try {
     const response = await api.get('/restaurants', { params });
@@ -120,6 +170,12 @@ export const getRestaurants = async (params?: Record<string, any>): Promise<Rest
   }
 };
 
+/**
+ * Get details for a specific restaurant
+ * 
+ * @param {number} id - Restaurant ID
+ * @returns {Promise<Restaurant | null>} - Promise resolving to the restaurant details
+ */
 export const getRestaurantById = async (id: number): Promise<Restaurant | null> => {
   try {
     const response = await api.get(`/restaurants/${id}`);
@@ -130,7 +186,29 @@ export const getRestaurantById = async (id: number): Promise<Restaurant | null> 
   }
 };
 
-// Bookings functions
+// ===== BOOKING FUNCTIONS =====
+
+/**
+ * Get all bookings for the current user
+ * 
+ * @returns {Promise<Booking[]>} - Promise resolving to an array of bookings
+ */
+export const getUserBookings = async (): Promise<Booking[]> => {
+  try {
+    const response = await api.get('/bookings/me');
+    return response.data;
+  } catch (error) {
+    console.error('Get user bookings error:', error);
+    return [];
+  }
+};
+
+/**
+ * Create a new booking
+ * 
+ * @param {object} bookingData - Booking information
+ * @returns {Promise<Booking>} - Promise resolving to the created booking
+ */
 export const createBooking = async (bookingData: {
   restaurantId: number;
   branchId: number;
@@ -147,17 +225,14 @@ export const createBooking = async (bookingData: {
   }
 };
 
-export const getUserBookings = async (): Promise<Booking[]> => {
-  try {
-    const response = await api.get('/bookings/me');
-    return response.data;
-  } catch (error) {
-    console.error('Get user bookings error:', error);
-    return [];
-  }
-};
+// ===== USER PROFILE FUNCTIONS =====
 
-// User profile functions
+/**
+ * Update the user's profile information
+ * 
+ * @param {object} profileData - User profile data
+ * @returns {Promise<User>} - Promise resolving to the updated user data
+ */
 export const updateUserProfile = async (profileData: {
   firstName: string;
   lastName: string;
@@ -174,7 +249,13 @@ export const updateUserProfile = async (profileData: {
   }
 };
 
-// Saved restaurants functions
+// ===== SAVED RESTAURANTS FUNCTIONS =====
+
+/**
+ * Get the user's saved/favorite restaurants
+ * 
+ * @returns {Promise<Restaurant[]>} - Promise resolving to an array of saved restaurants
+ */
 export const getSavedRestaurants = async (): Promise<Restaurant[]> => {
   try {
     const response = await api.get('/saved-restaurants');
@@ -185,6 +266,12 @@ export const getSavedRestaurants = async (): Promise<Restaurant[]> => {
   }
 };
 
+/**
+ * Get the saved status of a restaurant for the current user
+ * 
+ * @param {number} restaurantId - ID of the restaurant to check
+ * @returns {Promise<boolean>} - Promise resolving to true if the restaurant is saved, false otherwise
+ */
 export const getSavedStatus = async (restaurantId: number): Promise<boolean> => {
   try {
     const response = await api.get(`/saved-restaurants/${restaurantId}/status`);
@@ -195,6 +282,12 @@ export const getSavedStatus = async (restaurantId: number): Promise<boolean> => 
   }
 };
 
+/**
+ * Toggle the saved status of a restaurant for the current user
+ * 
+ * @param {number} restaurantId - ID of the restaurant to toggle
+ * @returns {Promise<boolean>} - Promise resolving to true if the restaurant is now saved, false otherwise
+ */
 export const toggleSavedStatus = async (restaurantId: number): Promise<boolean> => {
   try {
     const currentStatus = await getSavedStatus(restaurantId);

@@ -1,3 +1,17 @@
+/**
+ * [id].tsx - Restaurant Detail Screen
+ * 
+ * This is a dynamic route that displays details for a specific restaurant.
+ * The [id] in the filename means it accepts a dynamic parameter from the URL.
+ * 
+ * Features:
+ * - Fetches restaurant details using the ID from the URL
+ * - Displays restaurant information (name, description, images, etc.)
+ * - Shows available time slots for booking
+ * - Handles the booking process
+ * - Shows loading and error states
+ */
+
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -32,7 +46,13 @@ interface BranchWithCity extends Omit<Branch, 'slots'> {
   slots: (string | TimeSlot)[];
 }
 
+/**
+ * RestaurantDetailScreen component
+ * 
+ * Displays detailed information about a specific restaurant and allows booking.
+ */
 export default function RestaurantDetailScreen() {
+  // Get the restaurant ID, date, time, party size, and branch ID from the URL parameters
   const { id, date, time, partySize, branchId } = useLocalSearchParams<{
     id: string;
     date: string;
@@ -46,10 +66,11 @@ export default function RestaurantDetailScreen() {
   const colors = Colors[colorScheme];
   const { user } = useAuth();
   
+  // State for selected time
   const [selectedTime, setSelectedTime] = useState(time || '');
   
-  // Query restaurant details
-  const { data: restaurant, isLoading, error } = useQuery<RestaurantWithProfile | null>({ 
+  // Fetch restaurant details from API
+  const { data: restaurant, isLoading, error } = useQuery<RestaurantWithProfile | null>({
     queryKey: ['restaurant', id],
     queryFn: () => getRestaurantById(Number(id)),
   });
@@ -72,6 +93,9 @@ export default function RestaurantDetailScreen() {
   // Find the selected branch
   const selectedBranch = restaurant?.branches.find((branch) => branch.id === Number(branchId)) as unknown as BranchWithCity | undefined;
   
+  /**
+   * Handle booking
+   */
   const handleBooking = () => {
     if (!user) {
       Alert.alert('Authentication Required', 'Please log in to make a booking');
@@ -92,6 +116,7 @@ export default function RestaurantDetailScreen() {
     });
   };
   
+  // Show loading indicator while data is being fetched
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -101,6 +126,7 @@ export default function RestaurantDetailScreen() {
     );
   }
   
+  // Show error message if fetching failed
   if (error || !restaurant) {
     return (
       <View style={styles.errorContainer}>
@@ -117,10 +143,12 @@ export default function RestaurantDetailScreen() {
   
   return (
     <ScrollView style={styles.container}>
+      {/* Back button */}
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Ionicons name="arrow-back" size={24} color={colors.text} />
       </TouchableOpacity>
       
+      {/* Restaurant header with image */}
       <Image
         source={{
           uri: restaurant.profile?.logo || 'https://via.placeholder.com/400x200?text=Restaurant',
@@ -128,9 +156,11 @@ export default function RestaurantDetailScreen() {
         style={styles.coverImage}
       />
       
+      {/* Restaurant details */}
       <View style={styles.content}>
         <Text style={[styles.restaurantName, { color: colors.text }]}>{restaurant.name}</Text>
         
+        {/* Restaurant metadata */}
         <View style={styles.infoRow}>
           <View style={styles.infoItem}>
             <Ionicons name="location-outline" size={16} color={colors.text} style={styles.infoIcon} />
@@ -153,17 +183,22 @@ export default function RestaurantDetailScreen() {
           </View>
         </View>
         
+        {/* Divider */}
         <View style={styles.divider} />
         
+        {/* About section */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>About</Text>
         <Text style={[styles.aboutText, { color: colors.text }]}>
           {restaurant.profile?.about || 'No description available for this restaurant.'}
         </Text>
         
+        {/* Divider */}
         <View style={styles.divider} />
         
+        {/* Booking details */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Booking Details</Text>
         
+        {/* Booking details items */}
         <View style={styles.bookingDetails}>
           <View style={styles.bookingDetailItem}>
             <Ionicons name="calendar-outline" size={20} color={colors.text} style={styles.bookingIcon} />
@@ -180,8 +215,10 @@ export default function RestaurantDetailScreen() {
           </View>
         </View>
         
+        {/* Time slots */}
         <Text style={[styles.timeSlotTitle, { color: colors.text }]}>Available Time Slots</Text>
         
+        {/* Time slots list */}
         {selectedBranch?.slots && selectedBranch.slots.length > 0 ? (
           <View style={styles.timeSlots}>
             {selectedBranch.slots.map((slot, index) => {
@@ -215,6 +252,7 @@ export default function RestaurantDetailScreen() {
           </Text>
         )}
         
+        {/* Book now button */}
         <EhgezliButton
           title="Book Now"
           variant="ehgezli"
@@ -228,6 +266,9 @@ export default function RestaurantDetailScreen() {
   );
 }
 
+/**
+ * Styles for the RestaurantDetailScreen component
+ */
 const styles = StyleSheet.create({
   container: {
     flex: 1,

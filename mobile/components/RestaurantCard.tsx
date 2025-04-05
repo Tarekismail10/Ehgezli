@@ -1,3 +1,17 @@
+/**
+ * RestaurantCard.tsx - Restaurant Card Component
+ * 
+ * This component displays a card for a single restaurant in the list.
+ * It shows key information like:
+ * - Restaurant name and image
+ * - Cuisine type
+ * - Price range
+ * - Rating
+ * - Available time slots
+ * 
+ * The card is touchable and navigates to the restaurant detail screen when pressed.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
 import { RelativePathString, useRouter } from 'expo-router';
@@ -8,7 +22,9 @@ import Colors from '../constants/Colors';
 import { useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-// Define extended types for the restaurant data
+/**
+ * Define extended types for the restaurant data
+ */
 interface RestaurantWithAvailability extends Restaurant {
   profile?: {
     logo?: string;
@@ -17,12 +33,16 @@ interface RestaurantWithAvailability extends Restaurant {
   };
 }
 
-// Define time slot interface
+/**
+ * Define time slot interface
+ */
 interface TimeSlot {
   time: string;
 }
 
-// Define a custom branch type that doesn't extend Branch to avoid type conflicts
+/**
+ * Define a custom branch type that doesn't extend Branch to avoid type conflicts
+ */
 interface BranchWithAvailability {
   id: number;
   location: string;
@@ -31,6 +51,9 @@ interface BranchWithAvailability {
   slots: TimeSlot[];
 }
 
+/**
+ * Props for the RestaurantCard component
+ */
 interface RestaurantCardProps {
   restaurant: RestaurantWithAvailability;
   branchIndex: number;
@@ -39,6 +62,11 @@ interface RestaurantCardProps {
   partySize: number;
 }
 
+/**
+ * RestaurantCard component displays a card for a single restaurant
+ * 
+ * @param {RestaurantCardProps} props - Component props
+ */
 export function RestaurantCard({ 
   restaurant, 
   branchIndex, 
@@ -47,11 +75,21 @@ export function RestaurantCard({
   partySize 
 }: RestaurantCardProps) {
   console.log(`[RestaurantCard] rendering ${restaurant.id}, branch ${branchIndex}`);
+  
+  // Get the router for navigation
+  const router = useRouter();
+  
+  // Get the user's color scheme preference (light/dark)
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const router = useRouter();
+  
+  // Get the user's authentication data
   const { user } = useAuth();
+  
+  // State to track if the restaurant is saved
   const [isSaved, setIsSaved] = useState(false);
+  
+  // State to track if the save button is loading
   const [isLoading, setIsLoading] = useState(false);
 
   // Transform the branch data to include the expected fields
@@ -63,8 +101,10 @@ export function RestaurantCard({
     city: 'Cairo', // Default city or get from elsewhere if available
     slots: originalBranch.slots.map(timeStr => ({ time: timeStr }))
   };
-  
-  // Check if restaurant is saved when component mounts
+
+  /**
+   * Check if restaurant is saved when component mounts
+   */
   useEffect(() => {
     const checkSavedStatus = async () => {
       try {
@@ -78,6 +118,9 @@ export function RestaurantCard({
     checkSavedStatus();
   }, [restaurant.id, branchIndex]);
 
+  /**
+   * Handle save toggle button press
+   */
   const handleSaveToggle = async () => {
     try {
       setIsLoading(true);
@@ -96,6 +139,9 @@ export function RestaurantCard({
     }
   };
 
+  /**
+   * Handle card press
+   */
   const handlePress = () => {
     router.push({
       pathname: `/restaurant/${restaurant.id.toString()}` as unknown as RelativePathString,
@@ -114,6 +160,7 @@ export function RestaurantCard({
       onPress={handlePress}
       activeOpacity={0.7}
     >
+      {/* Restaurant image */}
       <View style={styles.header}>
         <Image 
           source={{ 
@@ -122,6 +169,8 @@ export function RestaurantCard({
           }} 
           style={styles.logo} 
         />
+        
+        {/* Restaurant details */}
         <View style={styles.headerText}>
           <Text style={[styles.name, { color: colors.text }]}>{restaurant.name}</Text>
           <Text style={[styles.cuisine, { color: colors.text }]}>
@@ -131,6 +180,8 @@ export function RestaurantCard({
             {branch.city}{branch.location ? `, ${branch.location}` : ''}
           </Text>
         </View>
+        
+        {/* Save button */}
         <TouchableOpacity 
           style={styles.saveButton} 
           onPress={handleSaveToggle}
@@ -144,11 +195,13 @@ export function RestaurantCard({
         </TouchableOpacity>
       </View>
 
+      {/* Restaurant metadata */}
       <View style={styles.details}>
         <Text style={[styles.price, { color: colors.text }]}>
           {restaurant.profile?.priceRange || '$$'}
         </Text>
         
+        {/* Time slots */}
         {branch.slots && branch.slots.length > 0 ? (
           <View style={styles.timeSlotsContainer}>
             <Text style={[styles.availabilityText, { color: colors.text }]}>
@@ -188,6 +241,9 @@ export function RestaurantCard({
   );
 }
 
+/**
+ * Styles for the RestaurantCard component
+ */
 const styles = StyleSheet.create({
   card: {
     borderRadius: 12,

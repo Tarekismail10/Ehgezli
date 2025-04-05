@@ -1,9 +1,25 @@
+/**
+ * RestaurantList.tsx - Restaurant List Component
+ * 
+ * This component displays a list of restaurants fetched from the API.
+ * It includes:
+ * - Filtering options (cuisine, price range, etc.)
+ * - Loading states
+ * - Error handling
+ * - Data transformation to match component requirements
+ * 
+ * The component uses React Query for data fetching and state management.
+ */
+
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { RestaurantCard } from './RestaurantCard';
 import { getRestaurants, getSavedRestaurants, Restaurant, Branch } from '../shared/api/client';
 
+/**
+ * Props for the RestaurantList component
+ */
 interface RestaurantListProps {
   searchQuery?: string;
   cityFilter?: string;
@@ -15,6 +31,11 @@ interface RestaurantListProps {
   showSavedOnly?: boolean;
 }
 
+/**
+ * RestaurantList component displays a list of restaurants with filtering options
+ * 
+ * @param {RestaurantListProps} props - Component props
+ */
 export function RestaurantList({
   searchQuery,
   cityFilter,
@@ -25,8 +46,6 @@ export function RestaurantList({
   partySize = 2,
   showSavedOnly = false,
 }: RestaurantListProps) {
-  console.log('[RestaurantList] rendering', { showSavedOnly });
-  
   // Query for all restaurants with availability
   const { data: apiRestaurants, isLoading } = useQuery<Restaurant[]>({
     queryKey: ['restaurants', searchQuery, cityFilter, cuisineFilter, priceFilter, date, time, partySize, showSavedOnly],
@@ -87,7 +106,7 @@ export function RestaurantList({
       return restaurantWithProfile;
     });
   }, [apiRestaurants]);
-  
+
   // Query for saved restaurants - always fetch this for marking saved status
   const { data: savedRestaurants, isLoading: isSavedLoading } = useQuery<Restaurant[]>({
     queryKey: ['saved-restaurants'],
@@ -103,7 +122,7 @@ export function RestaurantList({
     },
     enabled: !showSavedOnly, // Only run this query when not showing saved only
   });
-  
+
   // Loading state
   if (isLoading || (showSavedOnly && isSavedLoading)) {
     return (
@@ -113,7 +132,7 @@ export function RestaurantList({
       </View>
     );
   }
-  
+
   // No restaurants found
   if (!restaurants || restaurants.length === 0) {
     return (
@@ -206,6 +225,9 @@ export function RestaurantList({
   );
 }
 
+/**
+ * Styles for the RestaurantList component
+ */
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
